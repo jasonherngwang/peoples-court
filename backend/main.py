@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -11,6 +11,20 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from peoples_court.adjudicator import adjudicate
+
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
+
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    if not INTERNAL_API_KEY:
+        logger.error("INTERNAL_API_KEY is not set in the environment")
+        raise HTTPException(status_code=500, detail="Server security misconfiguration")
+
+    if x_api_key != INTERNAL_API_KEY:
+        logger.warning(f"Invalid API Key attempt: {x_api_key}")
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return x_api_key
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,7 +58,7 @@ async def health_check():
 
 
 @app.post("/adjudicate")
-async def post_adjudicate(request: AdjudicateRequest):
+async def post_adjudicate(request: AdjudicateRequest, _=Depends(verify_api_key)):
     """
     Submits a scenario for adjudication.
     Returns the final result only (blocks until complete).
@@ -78,7 +92,7 @@ async def post_adjudicate(request: AdjudicateRequest):
 
 
 @app.post("/adjudicate/stream")
-async def post_adjudicate_stream(request: AdjudicateRequest):
+async def post_adjudicate_stream(request: AdjudicateRequest, _=Depends(verify_api_key)):
     """
     Submits a scenario and returns a Server-Sent Events (SSE) stream.
     Includes status updates and Judge tokens.
