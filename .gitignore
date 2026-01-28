@@ -17,3 +17,4 @@ models/
 *.jsonl
 plans/
 *.backup
+scripts/

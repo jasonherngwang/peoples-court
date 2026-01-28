@@ -16,8 +16,33 @@ class Judge:
         self.client = genai.Client(api_key=api_key)
         self.model_id = model_id
 
+    async def adjudicate_stream(self, context: str, response_schema: Dict[str, Any]):
+        """Sends data to Gemini and yields a stream of tokens."""
+        prompt = f"""
+        You are the Judge of 'The People's Court', a legal expert on Reddit's AITA (Am I the Asshole) norms.
+        Your goal is to provide a final verdict on the current conflict based on provided facts, jury consensus, and relevant case law (precedents).
+        
+        {context}
+        
+        Provide your response in JSON format according to this schema:
+        {json.dumps(response_schema)}
+        """
+
+        # Note: We use the async client and generate_content_stream for true streaming
+        stream = self.client.models.generate_content_stream(
+            model=self.model_id,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+            },
+        )
+        for chunk in stream:
+            if chunk.text:
+                yield chunk.text
+
     def adjudicate(self, context: str, response_schema: Dict[str, Any]) -> str:
         """Sends data to Gemini and returns a structured response."""
+        # This remains for backward compatibility with existing CLI if needed
         prompt = f"""
         You are the Judge of 'The People's Court', a legal expert on Reddit's AITA (Am I the Asshole) norms.
         Your goal is to provide a final verdict on the current conflict based on provided facts, jury consensus, and relevant case law (precedents).
