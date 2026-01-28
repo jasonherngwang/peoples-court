@@ -1,4 +1,5 @@
 import psycopg
+from . import config
 from typing import List, Tuple, Dict, Any, Optional
 
 
@@ -13,7 +14,13 @@ class Database:
     def connect(self) -> psycopg.Connection:
         """Establish a connection to the database if one doesn't exist."""
         if not self.conn:
-            self.conn = psycopg.connect(dbname=self.dbname)
+            self.conn = psycopg.connect(
+                dbname=config.DB_NAME,
+                user=config.DB_USER,
+                password=config.DB_PASSWORD,
+                host=config.DB_HOST,
+                port=config.DB_PORT,
+            )
         return self.conn
 
     def close(self) -> None:

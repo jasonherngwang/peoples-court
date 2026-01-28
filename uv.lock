@@ -912,6 +912,45 @@ wheels = [
 ]
 
 [[package]]
+name = "peoples-court"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "datasets" },
+    { name = "einops" },
+    { name = "evaluate" },
+    { name = "google-genai" },
+    { name = "numpy" },
+    { name = "peft" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "python-dotenv" },
+    { name = "requests" },
+    { name = "scikit-learn" },
+    { name = "sentence-transformers" },
+    { name = "torch" },
+    { name = "transformers" },
+    { name = "zstandard" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "datasets", specifier = ">=3.2.0" },
+    { name = "einops", specifier = ">=0.8.2" },
+    { name = "evaluate", specifier = ">=0.4.3" },
+    { name = "google-genai", specifier = ">=1.60.0" },
+    { name = "numpy", specifier = ">=2.4.1" },
+    { name = "peft", specifier = ">=0.14.0" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.2" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "requests", specifier = ">=2.32.3" },
+    { name = "scikit-learn", specifier = ">=1.6.1" },
+    { name = "sentence-transformers", specifier = ">=5.2.1" },
+    { name = "torch", specifier = ">=2.10.0" },
+    { name = "transformers", specifier = ">=4.48.0" },
+    { name = "zstandard", specifier = ">=0.25.0" },
+]
+
+[[package]]
 name = "propcache"
 version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1380,45 +1419,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0a/d4/2b0cd0fe285e14b36db076e78c93766ff1d529d70408bd1d2a5a84f1d929/tenacity-9.1.2.tar.gz", hash = "sha256:1169d376c297e7de388d18b4481760d478b0e99a777cad3a9c86e556f4b697cb", size = 48036, upload-time = "2025-04-02T08:25:09.966Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/30/643397144bfbfec6f6ef821f36f33e57d35946c44a2352d3c9f0ae847619/tenacity-9.1.2-py3-none-any.whl", hash = "sha256:f77bf36710d8b73a50b2dd155c97b870017ad21afe6ab300326b0371b3b05138", size = 28248, upload-time = "2025-04-02T08:25:07.678Z" },
-]
-
-[[package]]
-name = "the-peoples-court"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "datasets" },
-    { name = "einops" },
-    { name = "evaluate" },
-    { name = "google-genai" },
-    { name = "numpy" },
-    { name = "peft" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "python-dotenv" },
-    { name = "requests" },
-    { name = "scikit-learn" },
-    { name = "sentence-transformers" },
-    { name = "torch" },
-    { name = "transformers" },
-    { name = "zstandard" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "datasets", specifier = ">=3.2.0" },
-    { name = "einops", specifier = ">=0.8.2" },
-    { name = "evaluate", specifier = ">=0.4.3" },
-    { name = "google-genai", specifier = ">=1.60.0" },
-    { name = "numpy", specifier = ">=2.4.1" },
-    { name = "peft", specifier = ">=0.14.0" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.2" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "requests", specifier = ">=2.32.3" },
-    { name = "scikit-learn", specifier = ">=1.6.1" },
-    { name = "sentence-transformers", specifier = ">=5.2.1" },
-    { name = "torch", specifier = ">=2.10.0" },
-    { name = "transformers", specifier = ">=4.48.0" },
-    { name = "zstandard", specifier = ">=0.25.0" },
 ]
 
 [[package]]

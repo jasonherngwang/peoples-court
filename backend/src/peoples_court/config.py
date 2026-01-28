@@ -2,6 +2,10 @@ import os
 
 # Database Settings
 DB_NAME = os.getenv("DB_NAME", "peoples_court")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_PORT = os.getenv("DB_PORT", "5432")
 
 # Model IDs
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL_NAME", "nomic-ai/nomic-embed-text-v1.5")

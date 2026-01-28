@@ -1,5 +1,5 @@
 [project]
-name = "the-peoples-court"
+name = "peoples-court"
 version = "0.1.0"
 description = "A satirical AI agent that adjudicates social conflicts"
 readme = "README.md"
