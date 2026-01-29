@@ -1,17 +1,28 @@
 import type { Metadata } from "next";
-import { Crimson_Pro } from "next/font/google";
+import { Instrument_Serif, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const crimsonPro = Crimson_Pro({
-  variable: "--font-crimson-pro",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif",
   subsets: ["latin"],
   display: "swap",
+  weight: "400",
+});
+
+const instrumentSans = Instrument_Sans({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Official High Court Registry of Social Grievances",
+  title: "The People's Court — Social Grievance Adjudication",
   description:
-    "Formal adjudication portal for social conflicts. Managed by the People's Court.",
+    "Official portal for submission and adjudication of social conflicts. Verdicts rendered with precedent-based analysis.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -20,12 +31,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${crimsonPro.variable} antialiased bg-background text-foreground min-h-screen selection:bg-navy selection:text-white`}
+        className={`${instrumentSerif.variable} ${instrumentSans.variable} antialiased bg-cream text-ink min-h-screen selection:bg-blue-light selection:text-white`}
       >
-        <div className="fixed inset-0 pointer-events-none opacity-5 paper-grain" />
-        <main className="relative z-10">{children}</main>
+        <main className="relative">{children}</main>
       </body>
     </html>
   );
