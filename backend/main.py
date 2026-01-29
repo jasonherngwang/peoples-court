@@ -11,7 +11,7 @@ import json
 # Ensure the src directory is in the path so we can import the peoples_court package
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-from peoples_court.adjudicator import adjudicate
+from peoples_court.adjudicator import adjudicate, retrieve_context
 from peoples_court.models import Embedder, Jury
 from peoples_court.config import EMBED_MODEL_NAME, JURY_MODEL_ID, JURY_ADAPTER_PATH
 
@@ -84,37 +84,23 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/adjudicate")
-async def post_adjudicate(request: AdjudicateRequest, _=Depends(verify_api_key)):
+@app.post("/context")
+async def post_retrieve_context(request: AdjudicateRequest, _=Depends(verify_api_key)):
     """
-    Submits a scenario for adjudication.
-    Returns the final result only (blocks until complete).
+    Retrieves the context (precedents and jury consensus) for a scenario.
+    Does NOT call the Judge.
     """
     try:
-        logger.info(
-            f"Received non-streaming adjudication request: {request.scenario[:50]}..."
+        logger.info(f"Received context retrieval request: {request.scenario[:50]}...")
+        context_data = await retrieve_context(
+            scenario=request.scenario,
+            k_precedents=request.k_precedents,
+            embedder=app.state.embedder,
+            jury=app.state.jury,
         )
-        final_result = None
-        # Consume the generator to get the final result
-        async for event in adjudicate(
-            scenario=request.scenario, k_precedents=request.k_precedents
-        ):
-            if event["event"] == "final_result":
-                final_result = event["data"]
-            elif event["event"] == "error":
-                raise HTTPException(status_code=500, detail=event["data"])
-
-        if not final_result:
-            raise HTTPException(
-                status_code=404,
-                detail="Adjudication complete but no final result generated",
-            )
-
-        return final_result
-    except HTTPException:
-        raise
+        return context_data
     except Exception as e:
-        logger.error(f"Adjudication failed: {str(e)}")
+        logger.error(f"Context retrieval failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

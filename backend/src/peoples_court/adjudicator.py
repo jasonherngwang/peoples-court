@@ -18,6 +18,43 @@ from .config import (
 logger = logging.getLogger(__name__)
 
 
+async def retrieve_context(
+    scenario: str,
+    db_name: str = DB_NAME,
+    embed_model_name: str = EMBED_MODEL_NAME,
+    jury_model_id: str = JURY_MODEL_ID,
+    jury_adapter_path: str = JURY_ADAPTER_PATH,
+    embedding_dim: int = EMBEDDING_DIM,
+    k_precedents: int = K_PRECEDENTS,
+    embedder: Optional[Embedder] = None,
+    jury: Optional[Jury] = None,
+):
+    """
+    Retrieves precedents and jury consensus for a given scenario.
+    """
+    db = Database(dbname=db_name)
+    try:
+        if not embedder:
+            embedder = Embedder(model_id=embed_model_name)
+        if not jury:
+            jury = Jury(model_id=jury_model_id, adapter_path=jury_adapter_path)
+
+        # 1. Vector Search & Retrieval
+        vector = embedder.encode(scenario, dim=embedding_dim)
+        precedents, v_res, k_res, h_rank = db.retrieve_precedents(
+            scenario_vector=vector,
+            keyword_query=scenario,
+            k_precedents=k_precedents,
+        )
+
+        # 2. Jury Polling
+        consensus = jury.predict(scenario)
+
+        return {"precedents": precedents, "consensus": consensus, "scenario": scenario}
+    finally:
+        db.close()
+
+
 async def adjudicate(
     scenario: str,
     db_name: str = DB_NAME,
@@ -41,121 +78,106 @@ async def adjudicate(
         yield {"event": "error", "data": "GEMINI_API_KEY not provided"}
         return
 
-    db = Database(dbname=db_name)
-    try:
-        # 1. Initialize models (if not provided)
-        if not embedder or not jury:
-            yield {"event": "status", "data": "Initializing models..."}
+    # 1. Initialize models (if not provided)
+    if not embedder or not jury:
+        yield {"event": "status", "data": "Initializing models..."}
 
-        if not embedder:
-            embedder = Embedder(model_id=embed_model_name)
+    # 2. Retrieve Context
+    yield {"event": "status", "data": "The Clerk is searching for precedents..."}
+    context_data = await retrieve_context(
+        scenario=scenario,
+        db_name=db_name,
+        embed_model_name=embed_model_name,
+        jury_model_id=jury_model_id,
+        jury_adapter_path=jury_adapter_path,
+        embedding_dim=embedding_dim,
+        k_precedents=k_precedents,
+        embedder=embedder,
+        jury=jury,
+    )
+    precedents = context_data["precedents"]
+    consensus = context_data["consensus"]
 
-        if not jury:
-            jury = Jury(model_id=jury_model_id, adapter_path=jury_adapter_path)
-
-        # 2. Vector Search & Retrieval
-        yield {"event": "status", "data": "The Clerk is searching for precedents..."}
-        vector = embedder.encode(scenario, dim=embedding_dim)
-        precedents, v_res, k_res, h_rank = db.retrieve_precedents(
-            scenario_vector=vector,
-            keyword_query=scenario,
-            k_precedents=k_precedents,
-        )
-
-        # 3. Jury Polling
-        yield {"event": "status", "data": "The Jury is polling..."}
-        consensus = jury.predict(scenario)
-
-        if not precedents:
-            yield {
-                "event": "error",
-                "data": "No relevant precedents found",
-                "consensus": consensus,
-            }
-            return
-
-        # 4. Build Context for Judge
-        context = "### CURRENT EVIDENCE PROVIDED BY THE PLAINTIFF:\n\n"
-        context += scenario + "\n\n"
-        context += "### PRE-DELIBERATION JURY POLLING:\n"
-        for label, prob in consensus.items():
-            context += f"- {label}: {prob * 100:.2f}%\n"
-        context += "\n"
-        context += "### RELEVANT CASE LAW (PRECEDENTS):\n\n"
-        for i, p in enumerate(precedents, 1):
-            context += f"CASE {i}: ID `{p['id']}` - Title: {p['title']}\n"
-            context += f"Official Reddit Verdict: {p['verdict']}\n"
-            context += f"Facts: {p['text'][:1000]}...\n"
-            context += "Top Judgments from the Jury:\n"
-            for c in p["comments"]:
-                context += (
-                    f"- {c['author']} (Score {c['score']}): {c['body'][:200]}...\n"
-                )
-            context += "\n---\n"
-
-        # 5. Judge Deliberation (Streaming)
-        yield {"event": "status", "data": "The Judge is deliberating..."}
-        judge = Judge(api_key=api_key, model_id=judge_model_name)
-
-        response_schema = {
-            "type": "OBJECT",
-            "properties": {
-                "verdict": {"type": "STRING", "enum": ["YTA", "NTA", "ESH", "NAH"]},
-                "opening_statement": {"type": "STRING"},
-                "facts": {"type": "STRING"},
-                "precedents": {
-                    "type": "ARRAY",
-                    "items": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "case_id": {"type": "STRING"},
-                            "comparison": {"type": "STRING"},
-                        },
-                        "required": ["case_id", "comparison"],
-                    },
-                },
-                "deliberation": {"type": "STRING"},
-            },
-            "required": [
-                "verdict",
-                "opening_statement",
-                "facts",
-                "precedents",
-                "deliberation",
-            ],
+    if not precedents:
+        yield {
+            "event": "error",
+            "data": "No relevant precedents found",
+            "consensus": consensus,
         }
+        return
 
-        # We yield a specific event for the Judge's result
-        # Note: Since the core logic expects a single JSON block to enrich,
-        # we still collect it, but we can stream tokens to the user meanwhile.
-        full_judge_response = ""
-        async for token in judge.adjudicate_stream(context, response_schema):
-            full_judge_response += token
-            yield {"event": "token", "data": token}
+    # 3. Build Context for Judge
+    context = "### CURRENT EVIDENCE PROVIDED BY THE PLAINTIFF:\n\n"
+    context += scenario + "\n\n"
+    context += "### PRE-DELIBERATION JURY POLLING:\n"
+    for label, prob in consensus.items():
+        context += f"- {label}: {prob * 100:.2f}%\n"
+    context += "\n"
+    context += "### RELEVANT CASE LAW (PRECEDENTS):\n\n"
+    for i, p in enumerate(precedents, 1):
+        context += f"CASE {i}: ID `{p['id']}` - Title: {p['title']}\n"
+        context += f"Official Reddit Verdict: {p['verdict']}\n"
+        context += f"Facts: {p['text'][:1000]}...\n"
+        context += "Top Judgments from the Jury:\n"
+        for c in p["comments"]:
+            context += f"- {c['author']} (Score {c['score']}): {c['body'][:200]}...\n"
+        context += "\n---\n"
 
-        # 6. Final Enrichment (Sent as a final summary event)
-        try:
-            result = json.loads(full_judge_response)
-            db_map = {p["id"]: p for p in precedents}
-            enriched_precedents = []
-            for cite in result["precedents"]:
-                cid = cite["case_id"]
-                if cid in db_map:
-                    data = db_map[cid].copy()
-                    data["comparison"] = cite["comparison"]
-                    enriched_precedents.append(data)
-                else:
-                    enriched_precedents.append(cite)
+    # 4. Judge Deliberation (Streaming)
+    yield {"event": "status", "data": "The Judge is deliberating..."}
+    judge = Judge(api_key=api_key, model_id=judge_model_name)
 
-            result["precedents"] = enriched_precedents
-            result["consensus"] = consensus
+    response_schema = {
+        "type": "OBJECT",
+        "properties": {
+            "verdict": {"type": "STRING", "enum": ["YTA", "NTA", "ESH", "NAH"]},
+            "explanation": {"type": "STRING"},
+            "precedents": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "case_id": {"type": "STRING"},
+                        "case_name": {"type": "STRING"},
+                        "comparison": {"type": "STRING"},
+                    },
+                    "required": ["case_id", "case_name", "comparison"],
+                },
+            },
+        },
+        "required": [
+            "verdict",
+            "explanation",
+            "precedents",
+        ],
+    }
 
-            yield {"event": "final_result", "data": result}
-        except Exception as e:
-            yield {
-                "event": "error",
-                "data": f"Failed to parse Judge response: {str(e)}",
-            }
+    # We yield a specific event for the Judge's result
+    full_judge_response = ""
+    async for token in judge.adjudicate_stream(context, response_schema):
+        full_judge_response += token
+        yield {"event": "token", "data": token}
 
-    finally:
-        db.close()
+    # 5. Final Enrichment
+    try:
+        result = json.loads(full_judge_response)
+        db_map = {p["id"]: p for p in precedents}
+        enriched_precedents = []
+        for cite in result["precedents"]:
+            cid = cite["case_id"]
+            if cid in db_map:
+                data = db_map[cid].copy()
+                data["comparison"] = cite["comparison"]
+                enriched_precedents.append(data)
+            else:
+                enriched_precedents.append(cite)
+
+        result["precedents"] = enriched_precedents
+        result["consensus"] = consensus
+
+        yield {"event": "final_result", "data": result}
+    except Exception as e:
+        yield {
+            "event": "error",
+            "data": f"Failed to parse Judge response: {str(e)}",
+        }

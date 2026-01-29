@@ -19,12 +19,16 @@ class Judge:
     async def adjudicate_stream(self, context: str, response_schema: Dict[str, Any]):
         """Sends data to Gemini and yields a stream of tokens."""
         prompt = f"""
-        You are the Judge of 'The People's Court', a legal expert on Reddit's AITA (Am I the Asshole) norms.
-        Your goal is to provide a final verdict on the current conflict based on provided facts, jury consensus, and relevant case law (precedents).
+        You are the Judge of 'The People's Court'. Your task is to provide a final verdict in just 3-4 concise, authoritative sentences.
+        
+        Mandatory Instructions:
+        1. Verdict: Must be one of YTA, NTA, ESH, NAH.
+        2. Explanation: Provide a few sentences explaining your ruling. You MUST refer to the precedents below by their 'case_name'.
+        3. Precedents: For each case provided in the context, create a very short (1 sentence) comparison and an amusing/descriptive 'case_name' (e.g., 'The Case of the Audacious Avocado'). 
         
         {context}
         
-        Provide your response in JSON format according to this schema:
+        Response MUST be valid JSON according to this schema:
         {json.dumps(response_schema)}
         """
 
@@ -44,12 +48,16 @@ class Judge:
         """Sends data to Gemini and returns a structured response."""
         # This remains for backward compatibility with existing CLI if needed
         prompt = f"""
-        You are the Judge of 'The People's Court', a legal expert on Reddit's AITA (Am I the Asshole) norms.
-        Your goal is to provide a final verdict on the current conflict based on provided facts, jury consensus, and relevant case law (precedents).
+        You are the Judge of 'The People's Court'. Your task is to provide a final verdict in just 3-4 concise, authoritative sentences.
+        
+        Mandatory Instructions:
+        1. Verdict: Must be one of YTA, NTA, ESH, NAH.
+        2. Explanation: Provide a few sentences explaining your ruling. You MUST refer to the precedents below by their 'case_name'.
+        3. Precedents: For each case provided in the context, create a very short (1 sentence) comparison and an amusing/descriptive 'case_name' (e.g., 'The Case of the Audacious Avocado'). 
         
         {context}
         
-        Provide your response in JSON format according to this schema:
+        Response MUST be valid JSON according to this schema:
         {json.dumps(response_schema)}
         """
         response = self.client.models.generate_content(
