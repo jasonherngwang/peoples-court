@@ -1,73 +1,9 @@
-import os
-import json
-from google import genai
 import torch
+import os
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from sentence_transformers import SentenceTransformer
-from typing import Dict, Any, Optional, List
-
-from .config import JUDGE_MODEL_NAME, EMBED_MODEL_NAME
-
-
-class Judge:
-    """Handles adjudication using Gemini API."""
-
-    def __init__(self, api_key: str, model_id: str = JUDGE_MODEL_NAME):
-        self.client = genai.Client(api_key=api_key)
-        self.model_id = model_id
-
-    async def adjudicate_stream(self, context: str, response_schema: Dict[str, Any]):
-        """Sends data to Gemini and yields a stream of tokens."""
-        prompt = f"""
-        You are the Judge of 'The People's Court'. Your task is to provide a final verdict in just 3-4 concise, authoritative sentences.
-        
-        Mandatory Instructions:
-        1. Verdict: Must be one of YTA, NTA, ESH, NAH.
-        2. Explanation: Provide a few sentences explaining your ruling. You MUST refer to the precedents below by their 'case_name'.
-        3. Precedents: For each case provided in the context, create a very short (1 sentence) comparison and an amusing/descriptive 'case_name' (e.g., 'The Case of the Audacious Avocado'). 
-        
-        {context}
-        
-        Response MUST be valid JSON according to this schema:
-        {json.dumps(response_schema)}
-        """
-
-        # Note: We use the async client and generate_content_stream for true streaming
-        stream = self.client.models.generate_content_stream(
-            model=self.model_id,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-            },
-        )
-        for chunk in stream:
-            if chunk.text:
-                yield chunk.text
-
-    def adjudicate(self, context: str, response_schema: Dict[str, Any]) -> str:
-        """Sends data to Gemini and returns a structured response."""
-        # This remains for backward compatibility with existing CLI if needed
-        prompt = f"""
-        You are the Judge of 'The People's Court'. Your task is to provide a final verdict in just 3-4 concise, authoritative sentences.
-        
-        Mandatory Instructions:
-        1. Verdict: Must be one of YTA, NTA, ESH, NAH.
-        2. Explanation: Provide a few sentences explaining your ruling. You MUST refer to the precedents below by their 'case_name'.
-        3. Precedents: For each case provided in the context, create a very short (1 sentence) comparison and an amusing/descriptive 'case_name' (e.g., 'The Case of the Audacious Avocado'). 
-        
-        {context}
-        
-        Response MUST be valid JSON according to this schema:
-        {json.dumps(response_schema)}
-        """
-        response = self.client.models.generate_content(
-            model=self.model_id,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-            },
-        )
-        return response.text
+from typing import Dict, Optional, List
+from .config import EMBED_MODEL_NAME
 
 
 class Jury:
@@ -96,6 +32,7 @@ class Jury:
             from peft import PeftModel
 
             self.model = PeftModel.from_pretrained(self.model, adapter_path)
+
         self.model.to(self.device).eval()
         self.labels = ["NTA", "YTA", "ESH", "NAH"]
 

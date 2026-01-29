@@ -21,7 +21,6 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL_NAME", "nomic-ai/nomic-embed-text-v1.5")
-JUDGE_MODEL_NAME = os.getenv("JUDGE_MODEL_NAME", "gemini-2.5-flash-lite")
 JURY_MODEL_ID = os.getenv("JURY_MODEL_ID", "answerdotai/ModernBERT-large")
 JURY_ADAPTER_PATH = os.getenv("JURY_ADAPTER_PATH", "./models/aita-classifier")
 

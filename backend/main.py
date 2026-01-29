@@ -1,17 +1,18 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
 from contextlib import asynccontextmanager
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 import sys
-import json
 
 # Ensure the src directory is in the path so we can import the peoples_court package
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-from peoples_court.adjudicator import adjudicate, retrieve_context
+from peoples_court.adjudicator import retrieve_context
 from peoples_court.models import Embedder, Jury
 from peoples_court.config import EMBED_MODEL_NAME, JURY_MODEL_ID, JURY_ADAPTER_PATH
 
@@ -56,12 +57,16 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
 
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="People's Court API",
     description="Adjudicating social conflicts using AITA case law.",
     version="0.1.0",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 class AdjudicateRequest(BaseModel):
@@ -85,6 +90,7 @@ async def health_check():
 
 
 @app.post("/context")
+@limiter.limit("10/minute")
 async def post_retrieve_context(request: AdjudicateRequest, _=Depends(verify_api_key)):
     """
     Retrieves the context (precedents and jury consensus) for a scenario.
@@ -102,31 +108,6 @@ async def post_retrieve_context(request: AdjudicateRequest, _=Depends(verify_api
     except Exception as e:
         logger.error(f"Context retrieval failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/adjudicate/stream")
-async def post_adjudicate_stream(request: AdjudicateRequest, _=Depends(verify_api_key)):
-    """
-    Submits a scenario and returns a Server-Sent Events (SSE) stream.
-    Includes status updates and Judge tokens.
-    """
-    logger.info(f"Received streaming adjudication request: {request.scenario[:50]}...")
-
-    async def event_generator():
-        try:
-            async for event in adjudicate(
-                scenario=request.scenario,
-                k_precedents=request.k_precedents,
-                embedder=app.state.embedder,
-                jury=app.state.jury,
-            ):
-                # Standard SSE format: "data: <json>\n\n"
-                yield f"data: {json.dumps(event)}\n\n"
-        except Exception as e:
-            logger.error(f"Streaming failed: {str(e)}")
-            yield f"data: {json.dumps({'event': 'error', 'data': str(e)})}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":
