@@ -57,8 +57,17 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
 
 
+def get_ip(request: Request):
+    """Accurately identifies the real client IP, even behind Cloudflare/Caddy."""
+    return (
+        request.headers.get("CF-Connecting-IP")
+        or request.headers.get("X-Forwarded-For", "").split(",")[0]
+        or get_remote_address(request)
+    )
+
+
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_ip)
 app = FastAPI(
     title="People's Court API",
     description="Adjudicating social conflicts using AITA case law.",

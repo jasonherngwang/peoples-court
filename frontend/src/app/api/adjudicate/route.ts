@@ -15,8 +15,32 @@ const WINDOW_MS = 60 * 1000; // 1 minute
 
 export async function POST(req: Request) {
   try {
-    // 0. Simple Rate Limiting
+    const userAgent = req.headers.get("user-agent") || "unknown";
+    const referer = req.headers.get("referer") || "";
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "anonymous";
+
+    // 0. Bot & Origin Protection
+    const isBot =
+      /bot|spider|crawl|slurp|bitlybot|facebookexternalhit|php|python|curl/i.test(
+        userAgent,
+      );
+    const isSelfOrigin = referer.includes(
+      process.env.NEXT_PUBLIC_SITE_URL || "peoples-court.vercel.app",
+    );
+
+    if (isBot && !referer) {
+      console.warn(`BLOCKED BOT: IP=${ip}, UA=${userAgent}`);
+      return new Response("Judicial access denied to automated entities.", {
+        status: 403,
+      });
+    }
+
+    if (!isSelfOrigin && process.env.NODE_ENV === "production") {
+      console.warn(`BLOCKED CROSS-ORIGIN: IP=${ip}, Referer=${referer}`);
+      return new Response("Unauthorized judicial inquiry.", { status: 403 });
+    }
+
+    // 1. Simple Rate Limiting
     const now = Date.now();
     const userLimit = rateLimitMap.get(ip) || { count: 0, lastReset: now };
 
