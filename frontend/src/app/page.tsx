@@ -8,7 +8,9 @@ import {
   Gavel,
   AlertCircle,
   Stamp,
-  ExternalLink,
+  BookOpen,
+  X,
+  MessageSquare,
 } from "lucide-react";
 
 // Helper component for smooth streaming text
@@ -41,10 +43,15 @@ function StreamingText({
   );
 }
 
+const VALID_VERDICTS = ["NTA", "YTA", "ESH", "NAH"];
+
 export default function Home() {
   const [scenario, setScenario] = useState("");
   const [checksum, setChecksum] = useState<string>("");
   const [referenceId, setReferenceId] = useState<string>("");
+  const [selectedPrecedent, setSelectedPrecedent] = useState<any>(null);
+  const [isGrievanceExpanded, setIsGrievanceExpanded] = useState(false);
+
   const {
     adjudicate,
     status,
@@ -72,6 +79,12 @@ export default function Home() {
     }
   };
 
+  // Determine if the results are substantial enough to show
+  const isReady =
+    (partialResult?.verdict &&
+      VALID_VERDICTS.includes(partialResult.verdict)) ||
+    (partialResult?.explanation && partialResult.explanation.length > 20);
+
   return (
     <div className="max-w-3xl mx-auto px-8 py-16">
       {/* Official Registry Header */}
@@ -87,8 +100,9 @@ export default function Home() {
       </header>
 
       <AnimatePresence mode="wait">
-        {!isLoading && !partialResult ? (
+        {!isLoading && !isReady ? (
           <motion.form
+            key="input-form"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -123,13 +137,17 @@ export default function Home() {
           </motion.form>
         ) : (
           <motion.div
+            key="results-view"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="space-y-12"
+            className="space-y-12 min-h-[60vh]"
           >
-            {/* Bureaucratic Status - only show while processing and we don't have enough to show the full case */}
-            {!result && (
-              <div className="border border-ink p-4 flex items-center justify-between bg-white">
+            {/* Bureaucratic Status - hide as soon as we are ready */}
+            {!isReady && !error && (
+              <motion.div
+                exit={{ opacity: 0, height: 0 }}
+                className="border border-ink p-4 flex items-center justify-between bg-white overflow-hidden"
+              >
                 <div className="flex items-center gap-3">
                   <FileText className="text-navy animate-pulse" size={18} />
                   <span className="text-xs font-bold tracking-widest uppercase">
@@ -139,7 +157,7 @@ export default function Home() {
                 <span className="text-[10px] opacity-40 tabular-nums">
                   REF: PC-{referenceId || "######"}
                 </span>
-              </div>
+              </motion.div>
             )}
 
             {/* Error Message */}
@@ -152,53 +170,63 @@ export default function Home() {
                 <p className="text-ink/80 text-lg leading-relaxed">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="text-xs font-bold underline uppercase tracking-widest hover:text-wax"
+                  className="text-xs font-bold underline uppercase tracking-widest hover:text-wax cursor-pointer"
                 >
                   Resubmit Documentation
                 </button>
               </div>
             )}
 
-            {/* Final Case File */}
-            {partialResult && (
+            {/* Final Case File Content */}
+            {isReady && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-16"
+                className="space-y-12"
               >
                 {/* Official Verdict Stamp */}
-                {partialResult.verdict && (
-                  <div className="relative py-12 text-center overflow-hidden">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] scale-150">
-                      <Stamp size={200} />
+                {partialResult.verdict &&
+                  VALID_VERDICTS.includes(partialResult.verdict) && (
+                    <div className="relative py-4 text-center">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] scale-125 pointer-events-none">
+                        <Stamp size={160} />
+                      </div>
+                      <div className="relative z-10 flex flex-col items-center gap-1">
+                        <span className="text-[10px] font-bold tracking-[0.5em] uppercase opacity-40">
+                          The Final Ruling
+                        </span>
+                        <h2 className="text-6xl md:text-8xl font-serif font-black uppercase tracking-tighter">
+                          {partialResult.verdict}
+                        </h2>
+                      </div>
                     </div>
-                    <div className="relative z-10 flex flex-col items-center gap-2">
-                      <span className="text-xs font-bold tracking-[0.5em] uppercase opacity-40">
-                        The Final Ruling
-                      </span>
-                      <h2 className="text-6xl md:text-8xl font-serif font-black uppercase tracking-tighter">
-                        {partialResult.verdict}
-                      </h2>
-                    </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Judicial Explanation */}
                 {partialResult.explanation && (
-                  <section className="space-y-6 pt-8">
-                    <h3 className="text-sm font-bold uppercase tracking-[0.2em] border-b border-ink pb-2">
+                  <section className="space-y-6 pt-4">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-ink border-b-2 border-ink pb-2">
                       The Court's Determination
                     </h3>
-                    <div className="font-serif text-2xl leading-relaxed text-ink font-medium">
+                    <div className="font-serif text-lg leading-relaxed text-ink">
                       {(() => {
-                        const text = partialResult.explanation;
+                        let text = partialResult.explanation;
                         const precedents = partialResult.precedents || [];
 
-                        // If no precedents yet, just stream the text
-                        if (precedents.length === 0)
-                          return <StreamingText text={text} />;
+                        // 1. Clean up quotes around case names if the LLM added them
+                        precedents.forEach((prec: any) => {
+                          if (!prec.case_name) return;
+                          text = text.replaceAll(
+                            `'${prec.case_name}'`,
+                            prec.case_name,
+                          );
+                          text = text.replaceAll(
+                            `"${prec.case_name}"`,
+                            prec.case_name,
+                          );
+                        });
 
-                        // Try to replace case_names with links
+                        // 2. Split for linking
                         let parts: (string | React.ReactNode)[] = [text];
 
                         precedents.forEach((prec: any) => {
@@ -225,7 +253,7 @@ export default function Home() {
                                         )
                                         ?.scrollIntoView({ behavior: "smooth" })
                                     }
-                                    className="text-navy underline font-bold hover:text-navy/80 transition-colors"
+                                    className="text-navy underline font-bold hover:text-navy/80 transition-colors cursor-pointer"
                                   >
                                     {prec.case_name}
                                   </button>,
@@ -252,10 +280,43 @@ export default function Home() {
                   </section>
                 )}
 
+                {/* Original Grievance */}
+                <section className="space-y-4">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink/70 border-b border-ink/20 pb-1.5 flex justify-between items-center">
+                    <span>Statement of Grievance (Original)</span>
+                    {scenario.length > 500 && (
+                      <button
+                        onClick={() =>
+                          setIsGrievanceExpanded(!isGrievanceExpanded)
+                        }
+                        className="text-[9px] hover:text-navy hover:underline cursor-pointer"
+                      >
+                        {isGrievanceExpanded ? "COLLAPSE" : "EXPAND"}
+                      </button>
+                    )}
+                  </h3>
+                  <div
+                    className={`font-serif text-lg leading-relaxed text-ink/70 italic border-l-2 border-ink/10 pl-6 whitespace-pre-wrap relative overflow-hidden transition-all duration-300 ${!isGrievanceExpanded && scenario.length > 500 ? "max-h-[300px]" : ""}`}
+                  >
+                    {scenario}
+                    {!isGrievanceExpanded && scenario.length > 500 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                    )}
+                  </div>
+                  {!isGrievanceExpanded && scenario.length > 500 && (
+                    <button
+                      onClick={() => setIsGrievanceExpanded(true)}
+                      className="text-xs font-bold uppercase tracking-widest text-navy hover:underline ml-6 mt-2"
+                    >
+                      Read Full Grievance
+                    </button>
+                  )}
+                </section>
+
                 {/* Exhibits / Precedents */}
                 {partialResult.precedents && (
-                  <section className="space-y-6 pt-8">
-                    <h3 className="text-sm font-bold uppercase tracking-[0.2em] border-b border-ink pb-2">
+                  <section className="space-y-6 pt-4">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-ink border-b-2 border-ink pb-2">
                       Historical Precedents Cited
                     </h3>
                     <div className="space-y-6">
@@ -265,55 +326,80 @@ export default function Home() {
                           id={`prec-${prec.id || prec.case_id}`}
                           className="p-8 border-l-4 border-navy bg-white shadow-sm space-y-3"
                         >
-                          <div className="flex justify-between items-start">
-                            <h4 className="font-serif font-black text-xl text-ink leading-tight">
-                              {prec.id ? (
-                                <a
-                                  href={`https://www.reddit.com/r/AmItheAsshole/comments/${prec.id}/`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="hover:text-navy transition-colors flex items-center gap-2"
+                          <div className="space-y-4">
+                            {prec.case_name && (
+                              <div className="text-sm font-bold uppercase tracking-widest text-navy bg-navy/5 inline-block px-2 py-0.5">
+                                {prec.case_name}
+                              </div>
+                            )}
+                            <div className="flex justify-between items-start gap-4">
+                              <h4 className="font-serif font-black text-xl text-ink leading-tight">
+                                {prec.id || prec.case_id ? (
+                                  <a
+                                    href={`https://www.reddit.com/comments/${prec.id || prec.case_id}/`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-navy hover:underline transition-all cursor-pointer"
+                                  >
+                                    {prec.title || prec.case_name}
+                                  </a>
+                                ) : (
+                                  prec.title || (
+                                    <span className="opacity-40 italic">
+                                      {prec.case_name ||
+                                        `Retrieving Document...`}
+                                    </span>
+                                  )
+                                )}
+                              </h4>
+                              {prec.id && (
+                                <button
+                                  onClick={() => setSelectedPrecedent(prec)}
+                                  className="p-2 hover:bg-navy/5 text-navy transition-colors cursor-pointer border border-navy/20"
+                                  title="Inspect Original Case File"
                                 >
-                                  {prec.title}
-                                  <ExternalLink
-                                    size={14}
-                                    className="opacity-40"
-                                  />
-                                </a>
-                              ) : (
-                                <span className="opacity-40 italic">
-                                  {prec.case_name || `Retrieving Document...`}
-                                </span>
+                                  <BookOpen size={18} />
+                                </button>
                               )}
-                            </h4>
+                            </div>
                           </div>
 
-                          <p className="text-base text-ink font-serif leading-relaxed italic border-t border-ink/5 pt-3">
-                            {prec.comparison ? (
-                              <StreamingText
-                                text={prec.comparison}
-                                animate={!result}
-                              />
-                            ) : (
-                              "Architecting comparison..."
-                            )}
-                          </p>
-
-                          {prec.case_name && (
-                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-                              Archived as: {prec.case_name}
-                            </div>
-                          )}
+                          <div className="text-base text-ink font-serif leading-relaxed italic border-t border-ink/5 pt-3">
+                            {prec.comparison
+                              ? (() => {
+                                  let comp = prec.comparison;
+                                  const allPrecedents =
+                                    partialResult.precedents || [];
+                                  allPrecedents.forEach((p: any) => {
+                                    if (!p.case_name) return;
+                                    comp = comp.replaceAll(
+                                      `'${p.case_name}'`,
+                                      p.case_name,
+                                    );
+                                    comp = comp.replaceAll(
+                                      `"${p.case_name}"`,
+                                      p.case_name,
+                                    );
+                                  });
+                                  return (
+                                    <StreamingText
+                                      text={comp}
+                                      animate={!result}
+                                    />
+                                  );
+                                })()
+                              : "Architecting comparison..."}
+                          </div>
                         </div>
                       ))}
                     </div>
                   </section>
                 )}
 
-                <div className="flex justify-between items-center pt-12 border-t border-ink/20">
+                <div className="flex justify-between items-center pt-8 border-t border-ink/20">
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-[10px] font-bold text-navy hover:underline tracking-widest uppercase"
+                    className="text-[10px] font-bold text-navy hover:underline tracking-widest uppercase cursor-pointer"
                   >
                     {`<<`} Return to Registry Filing
                   </button>
@@ -338,6 +424,99 @@ export default function Home() {
         Social Grievances. Unauthorised adjudication is strictly prohibited.
         <br />
       </footer>
+
+      {/* Legal Archive Modal */}
+      <AnimatePresence>
+        {selectedPrecedent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPrecedent(null)}
+              className="absolute inset-0 bg-navy/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 10 }}
+              className="relative w-full max-w-4xl max-h-[90vh] bg-background border-2 border-ink overflow-hidden flex flex-col shadow-2xl"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-ink flex justify-between items-center bg-white">
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/60">
+                    Archives Section: Case Law Detail
+                  </div>
+                  <h3 className="font-serif font-black text-xl uppercase leading-tight text-ink">
+                    {selectedPrecedent.case_name || "Official Case Record"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedPrecedent(null)}
+                  className="p-1 hover:bg-ink/5 text-ink/40 hover:text-ink transition-colors cursor-pointer"
+                >
+                  <X size={24} strokeWidth={1.5} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-10 font-serif space-y-12 bg-white selection:bg-navy/10">
+                {/* Original Post */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-navy/40 border-b border-ink/5 pb-2">
+                    <FileText size={14} />
+                    Original Documentation
+                  </div>
+                  <div className="space-y-6">
+                    <h4 className="text-2xl font-black leading-tight text-ink">
+                      {selectedPrecedent.title}
+                    </h4>
+                    <div className="text-base leading-relaxed text-ink/80 whitespace-pre-wrap font-medium">
+                      {selectedPrecedent.text}
+                    </div>
+                  </div>
+                </section>
+
+                {/* Evidence: Jury Comments */}
+                {selectedPrecedent.comments &&
+                  selectedPrecedent.comments.length > 0 && (
+                    <section className="space-y-6">
+                      <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-navy/40 border-b border-ink/5 pb-2">
+                        <MessageSquare size={14} />
+                        Cross-Examination: Jury Judgments
+                      </div>
+                      <div className="space-y-4">
+                        {selectedPrecedent.comments.map(
+                          (comment: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="p-6 border border-ink/5 bg-parchment/10 space-y-3 relative overflow-hidden"
+                            >
+                              <div className="flex justify-between items-center text-[9px] uppercase font-bold tracking-[0.2em] opacity-40">
+                                <span>JUROR: {comment.author}</span>
+                                <span>STRENGTH: {comment.score}</span>
+                              </div>
+                              <p className="text-base leading-relaxed italic text-ink/80">
+                                "{comment.body}"
+                              </p>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </section>
+                  )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-ink/10 bg-white flex justify-between items-center text-[9px] font-bold tracking-widest uppercase opacity-40">
+                <span>Ref ID: {selectedPrecedent.id}</span>
+                <span>Verification Status: Certified Copy</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

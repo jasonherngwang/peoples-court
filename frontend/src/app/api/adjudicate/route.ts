@@ -165,7 +165,13 @@ export async function POST(req: Request) {
               Mandatory Instructions:
               1. Verdict: Must be one of YTA, NTA, ESH, NAH.
               2. Explanation: Provide a few sentences explaining your ruling. You MUST refer to the precedents below by their 'case_name'.
-              3. Precedents: For each case provided in the context, create a very short (1 sentence) comparison and an amusing/descriptive 'case_name' (e.g., 'The Case of the Audacious Avocado'). 
+              3. Precedents: For each case provided in the context, create a 2-3 sentence 'comparison' and a unique amusing/descriptive 'case_name' which references an interesting aspect of the case. 
+              
+              Comparison Guidelines:
+              - Do not just summarize the precedent.
+              - EXPLICITLY explain how the moral or social logic of the precedent applies (or contrasts) with the current grievance.
+              - Focus on the underlying principle.
+              - IMPORTANT: Do NOT put single or double quotes around the 'case_name' ANYWHERE in your output (neither in the Determiniation nor in the Precedent Comparisons). Just state the name plainly for the system to link it.
               
               ${contextText}
             `,

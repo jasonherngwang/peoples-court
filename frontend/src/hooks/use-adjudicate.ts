@@ -68,40 +68,83 @@ export function useAdjudicate() {
     return null;
   }, [messages]);
 
-  // Extract partial result for incremental rendering
-  const partialResult = useMemo(() => {
+  // Extract partial result for incremental rendering with "Sticky" behavior
+  const lastValidResult = useMemo(() => {
     if (result) return result;
     if (!tokens) return null;
 
     try {
-      // Attempt to fix common JSON truncation issues at the end of the stream
       let json = tokens.trim();
       if (!json.startsWith("{")) return null;
 
-      // Close open objects/arrays for a valid parse during streaming
-      let openBrackets =
-        (json.match(/\{/g) || []).length - (json.match(/\}/g) || []).length;
-      let openBraces =
-        (json.match(/\[/g) || []).length - (json.match(/\]/g) || []).length;
+      // Robustly close open objects/arrays
+      let resultStr = json;
+      let stack: string[] = [];
+      let inString = false;
+      let escaped = false;
 
-      while (openBraces > 0) {
-        json += "]";
-        openBraces--;
-      }
-      while (openBrackets > 0) {
-        json += "}";
-        openBrackets--;
+      for (let i = 0; i < resultStr.length; i++) {
+        const char = resultStr[i];
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        if (inString) continue;
+
+        if (char === "{") stack.push("}");
+        if (char === "[") stack.push("]");
+        if (char === "}" || char === "]") {
+          if (stack.length > 0 && stack[stack.length - 1] === char) {
+            stack.pop();
+          }
+        }
       }
 
-      return JSON.parse(json);
+      if (inString) resultStr += '"';
+      while (stack.length > 0) {
+        resultStr += stack.pop();
+      }
+
+      return JSON.parse(resultStr);
     } catch (e) {
       return null;
     }
   }, [tokens, result]);
 
+  // Use a ref to keep the result "Sticky" (if parsing fails mid-stream, keep last valid result)
+  const stickyResultRef = useMemo(() => {
+    let current: any = null;
+    return {
+      get: () => current,
+      set: (val: any) => {
+        if (val) current = val;
+      },
+      clear: () => {
+        current = null;
+      },
+    };
+  }, []);
+
+  const partialResult = useMemo(() => {
+    if (lastValidResult) {
+      stickyResultRef.set(lastValidResult);
+      return lastValidResult;
+    }
+    return stickyResultRef.get();
+  }, [lastValidResult, stickyResultRef]);
+
   const adjudicate = useCallback(
     (scenario: string, k_precedents: number = 3) => {
       setMessages([]);
+      stickyResultRef.clear();
       sendMessage(
         {
           text: scenario,
@@ -111,7 +154,7 @@ export function useAdjudicate() {
         },
       );
     },
-    [sendMessage, setMessages],
+    [sendMessage, setMessages, stickyResultRef],
   );
 
   return {
