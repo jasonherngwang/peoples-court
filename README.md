@@ -9,6 +9,8 @@ Draw upon case law from a decade of [r/AmITheAsshole](https://www.reddit.com/r/A
 - **ESH:** Everyone sucks here (everyone is an asshole)
 - **NAH:** No assholes here
 
+<img src="frontend/public/verdict.png" width=800 />
+
 ## The Cast
 
 **The Jury** is a classifier model outputting probabilities of each verdict. This community consensus provides a pre-deliberation bias. It uses a LoRA adapter fine-tuned on `ModernBERT-large` using r/AITA posts from 2014 to 2024.

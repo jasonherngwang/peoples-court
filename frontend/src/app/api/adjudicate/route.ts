@@ -160,18 +160,19 @@ export async function POST(req: Request) {
               ),
             }),
             prompt: `
-              You are the Judge of 'The People's Court'. Your task is to provide a final verdict in just 3-4 concise, authoritative sentences.
+              You are the presiding Judicial Officer of 'The People's Court'. You are hereby directed to render a final disposition in the instant matter, articulated in 3-4 concise, authoritative sentences employing appropriate legal vocabulary. Sprinkle in some Latin if relevant.
               
               Mandatory Instructions:
-              1. Verdict: Must be one of YTA, NTA, ESH, NAH.
-              2. Explanation: Provide a few sentences explaining your ruling. You MUST refer to the precedents below by their 'case_name'.
-              3. Precedents: For each case provided in the context, create a 2-3 sentence 'comparison' and a unique amusing/descriptive 'case_name' which references an interesting aspect of the case. 
+              1. Disposition: Must be rendered as one of the following: YTA, NTA, ESH, NAH.
+              2. Determination: Issue a succinct judicial opinion explaining the Court's reasoning. You are REQUIRED to cite controlling precedent by 'case_name' as set forth in the record below.
+              3. Precedents: For each matter of binding precedent provided in the evidentiary record, you shall craft a 2-3 sentence 'comparison' and assign a unique, dryly sardonic 'case_name' that references material facts or circumstances of said precedent. 
               
-              Comparison Guidelines:
-              - Do not just summarize the precedent.
-              - EXPLICITLY explain how the moral or social logic of the precedent applies (or contrasts) with the current grievance.
-              - Focus on the underlying principle.
-              - IMPORTANT: Do NOT put single or double quotes around the 'case_name' ANYWHERE in your output (neither in the Determiniation nor in the Precedent Comparisons). Just state the name plainly for the system to link it.
+              Precedent Analysis Guidelines:
+              - The Court shall not merely recite or summarize the facts of the precedent.
+              - You MUST articulate, with particularity, how the legal principles, moral considerations, or social norms established in the cited precedent bear upon—or distinguish from—the material facts of the instant grievance.
+              - Focus on the ratio decidendi and underlying equitable principles.
+              - When drafting your comparison, do NOT reference the technical case_id (e.g., "qdlhvp"). Instead, use natural legal phrasing such as "in this case," "this matter," "the present precedent," "herein," or similar flowing language.
+              - CRITICAL: Under no circumstances shall single or double quotation marks be placed around the 'case_name' in ANY portion of your written determination (neither in the Disposition nor in Precedent Comparisons). The case name shall be stated plainly to facilitate proper citation linkage.
               
               ${contextText}
             `,

@@ -10,6 +10,7 @@ import { GrievanceForm } from "@/components/GrievanceForm";
 import { VerdictDisplay } from "@/components/VerdictDisplay";
 import { PrecedentCard } from "@/components/PrecedentCard";
 import { PrecedentModal } from "@/components/PrecedentModal";
+import { SuggestedPrompts } from "@/components/SuggestedPrompts";
 
 const VALID_VERDICTS = ["NTA", "YTA", "ESH", "NAH"];
 
@@ -45,7 +46,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col py-8 gap-12">
       <Header showDescription={!showingResults} />
 
-      <main className="flex-1 container-narrow pb-16">
+      <main className="container-narrow pb-16">
         <AnimatePresence mode="wait">
           {!isLoading && !isReady ? (
             <motion.div
@@ -53,6 +54,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="w-full"
             >
               <GrievanceForm
                 scenario={scenario}
@@ -65,7 +67,7 @@ export default function Home() {
               key="results"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-16"
+              className="space-y-16 w-full"
             >
               {/* Loading State */}
               {!isReady && !error && (
@@ -175,6 +177,12 @@ export default function Home() {
           )}
         </AnimatePresence>
       </main>
+
+      {!showingResults && (
+        <section className="pb-16">
+          <SuggestedPrompts onSelect={setScenario} />
+        </section>
+      )}
 
       {/* Precedent Modal */}
       <PrecedentModal

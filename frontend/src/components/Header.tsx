@@ -15,8 +15,17 @@ export function Header({ showDescription = true }: HeaderProps) {
         </h1>
         {showDescription && (
           <p className="body-regular font-medium max-w-lg mx-auto">
-            <span className="font-semibold">Am I The Asshole?</span> Submit a
-            social grievance for formal adjudication.
+            <span className="font-semibold">Am I The Asshole?</span> Submit your
+            grievance. A decade of{" "}
+            <a
+              href="https://www.reddit.com/r/AmItheAsshole/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-inline"
+            >
+              case law
+            </a>{" "}
+            will be used to render a verdict.
           </p>
         )}
       </div>

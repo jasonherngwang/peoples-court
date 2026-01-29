@@ -268,6 +268,7 @@ body {
 }
 
 .container-narrow {
+  width: 100%;
   max-width: 680px;
   margin: 0 auto;
   padding: 0 1.5rem;
@@ -316,6 +317,57 @@ body {
   height: 3px;
   background: linear-gradient(90deg, var(--color-blue-light) 0%, var(--color-blue) 100%);
   border-radius: 2px;
+}
+
+.prompt-chip {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1rem;
+  text-align: left;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  height: auto;
+  min-height: 0;
+}
+
+.prompt-chip:hover {
+  border-color: var(--color-blue-light);
+  background-color: var(--color-cream-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.prompt-chip-text {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-ink-light);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.prompts-container-wide {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 @keyframes fadeIn {

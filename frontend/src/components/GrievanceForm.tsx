@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
+import { SuggestedPrompts } from "./SuggestedPrompts";
 
 interface GrievanceFormProps {
   scenario: string;
@@ -14,37 +15,27 @@ export function GrievanceForm({
   onSubmit,
 }: GrievanceFormProps) {
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
-      <div className="space-y-3">
-        <label className="heading-2 block">Statement of Grievance</label>
+    <form onSubmit={onSubmit} className="space-y-8 w-full">
+      <div className="w-full space-y-4">
+        <label className="heading-2 block text-center">
+          Statement of Grievance
+        </label>
         <textarea
           value={scenario}
           onChange={(e) => onScenarioChange(e.target.value)}
-          placeholder="AITA because..."
-          className="input-textarea h-72"
+          placeholder="AITA because I..."
+          className="input-textarea h-80 w-full"
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-6">
+      <div className="flex flex-col items-center gap-6">
         <button
           type="submit"
           disabled={!scenario.trim()}
-          className="btn-primary w-full sm:w-auto"
+          className="btn-primary min-w-[200px]"
         >
           Adjudicate
         </button>
-        <p className="body-small text-center sm:text-left max-w-xs">
-          Your grievance will be analyzed against a decade of{" "}
-          <a
-            href="https://www.reddit.com/r/AmItheAsshole/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link-inline"
-          >
-            historical precedents
-          </a>{" "}
-          to render a verdict.
-        </p>
       </div>
     </form>
   );
