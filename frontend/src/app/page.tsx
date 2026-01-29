@@ -76,21 +76,13 @@ export default function Home() {
     <div className="max-w-3xl mx-auto px-8 py-16">
       {/* Official Registry Header */}
       <header className="mb-20 space-y-8 text-center border-b-4 border-double border-ink pb-12">
-        <p className="text-xs font-bold tracking-[0.4em] uppercase opacity-60">
-          Registry Form PC-2026-A1
-        </p>
         <div className="space-y-2">
           <h1 className="text-5xl font-serif font-black tracking-tight uppercase">
-            The High Court Registry
+            Am I The Asshole?
           </h1>
           <h2 className="text-xl font-serif italic text-navy/80">
-            Official Portal for the Submission of Social Grievances
+            Portal for Submission of Social Grievances
           </h2>
-        </div>
-        <div className="flex justify-center gap-12 text-[10px] font-bold tracking-widest uppercase opacity-40">
-          <span>Department of Ethics</span>
-          <span>Bureau of Human Conduct</span>
-          <span>AITA Division</span>
         </div>
       </header>
 
@@ -104,12 +96,8 @@ export default function Home() {
             className="space-y-12"
           >
             <div className="space-y-4">
-              <label className="text-sm font-bold uppercase tracking-wider block">
+              <label className="text-base font-bold uppercase tracking-wider block">
                 Statement of Grievance
-                <span className="text-[10px] font-normal italic block lowercase opacity-50 mt-1">
-                  Please provide a comprehensive and truthful account of the
-                  scenario in question.
-                </span>
               </label>
               <textarea
                 value={scenario}
@@ -332,9 +320,9 @@ export default function Home() {
                   {result && (
                     <div className="seal">
                       <span className="text-[10px] leading-none">
-                        ORDER
+                        OFFICIAL
                         <br />
-                        PC-2026
+                        ORDER
                       </span>
                     </div>
                   )}
@@ -349,9 +337,6 @@ export default function Home() {
         This document and its contents are the property of the High Court of
         Social Grievances. Unauthorised adjudication is strictly prohibited.
         <br />
-        <span className="block mt-2 font-mono">
-          MD5_CHECKSUM: {checksum || "LOADING..."} // CLASSIFIED_DOCUMENT
-        </span>
       </footer>
     </div>
   );

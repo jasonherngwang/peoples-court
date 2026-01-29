@@ -49,29 +49,42 @@ export async function POST(req: Request) {
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         try {
-          // 1. Fetch Context from OCI backend
+          // 0. Immediate Heartbeat (Confirms Edge Function is actually running)
+          writer.write({
+            type: "data-status" as any,
+            data: { status: "Initiating Judicial Protocol..." },
+          });
+
+          // 1. Env Check
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          const apiKey = process.env.INTERNAL_API_KEY;
+
+          if (!apiUrl || !apiKey) {
+            console.error("CRITICAL: Missing Vercel Environment Variables:", {
+              NEXT_PUBLIC_API_URL: !!apiUrl,
+              INTERNAL_API_KEY: !!apiKey,
+            });
+            throw new Error(
+              "Judicial system misconfigured. Please contact the Clerk.",
+            );
+          }
+
+          // 2. Fetch Context from OCI backend
           writer.write({
             type: "data-status" as any,
             data: { status: "Searching for precedents..." },
           });
 
-          if (!process.env.NEXT_PUBLIC_API_URL) {
-            throw new Error("NEXT_PUBLIC_API_URL is not configured on Vercel.");
-          }
-
-          const contextResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/context`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-API-Key": process.env.INTERNAL_API_KEY || "",
-              },
-              body: JSON.stringify({ scenario, k_precedents }),
-              // Ensure we don't hang too long on cold OCI
-              signal: AbortSignal.timeout(15000),
+          const contextResponse = await fetch(`${apiUrl}/context`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Key": apiKey,
             },
-          );
+            body: JSON.stringify({ scenario, k_precedents }),
+            // Ensure we don't hang too long on cold OCI
+            signal: AbortSignal.timeout(15000),
+          });
 
           if (!contextResponse.ok) {
             const errText = await contextResponse.text();

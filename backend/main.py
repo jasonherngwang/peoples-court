@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -91,16 +91,18 @@ async def health_check():
 
 @app.post("/context")
 @limiter.limit("10/minute")
-async def post_retrieve_context(request: AdjudicateRequest, _=Depends(verify_api_key)):
+async def post_retrieve_context(
+    request: Request, body: AdjudicateRequest, _=Depends(verify_api_key)
+):
     """
     Retrieves the context (precedents and jury consensus) for a scenario.
     Does NOT call the Judge.
     """
     try:
-        logger.info(f"Received context retrieval request: {request.scenario[:50]}...")
+        logger.info(f"Received context retrieval request: {body.scenario[:50]}...")
         context_data = await retrieve_context(
-            scenario=request.scenario,
-            k_precedents=request.k_precedents,
+            scenario=body.scenario,
+            k_precedents=body.k_precedents,
             embedder=app.state.embedder,
             jury=app.state.jury,
         )
