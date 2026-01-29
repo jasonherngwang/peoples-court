@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     uv sync --frozen --no-install-project --no-dev
 
-ADD . /app
+ADD backend /app
 
 FROM python:3.14-slim-bookworm
 
@@ -22,9 +22,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 ENV DB_HOST=db
 ENV DB_PORT=5432
-ENV PYTHONPATH=/app/backend/src
+ENV PYTHONPATH=/app/src
 
 EXPOSE 8000
 
 # Start uvicorn
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

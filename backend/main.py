@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
+from contextlib import asynccontextmanager
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -11,6 +12,8 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from peoples_court.adjudicator import adjudicate
+from peoples_court.models import Embedder, Jury
+from peoples_court.config import EMBED_MODEL_NAME, JURY_MODEL_ID, JURY_ADAPTER_PATH
 
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
@@ -26,13 +29,38 @@ async def verify_api_key(x_api_key: str = Header(None)):
     return x_api_key
 
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging - silence verbose third-party libraries
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
+# Suppress verbose logs from third-party libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("google_genai").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load models on startup
+    logger.info("Loading models...")
+    app.state.embedder = Embedder(model_id=EMBED_MODEL_NAME)
+    app.state.jury = Jury(model_id=JURY_MODEL_ID, adapter_path=JURY_ADAPTER_PATH)
+    logger.info("Models loaded successfully.")
+    yield
+    # Clean up resources on shutdown
+    logger.info("Shutting down...")
+
 
 app = FastAPI(
     title="People's Court API",
     description="Adjudicating social conflicts using AITA case law.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
@@ -48,7 +76,6 @@ class AdjudicateResponse(BaseModel):
     precedents: List[Dict[str, Any]]
     deliberation: str
     consensus: Dict[str, float]
-    diagnostics: Optional[Dict[str, Any]] = None
 
 
 @app.get("/health")
@@ -102,7 +129,10 @@ async def post_adjudicate_stream(request: AdjudicateRequest, _=Depends(verify_ap
     async def event_generator():
         try:
             async for event in adjudicate(
-                scenario=request.scenario, k_precedents=request.k_precedents
+                scenario=request.scenario,
+                k_precedents=request.k_precedents,
+                embedder=app.state.embedder,
+                jury=app.state.jury,
             ):
                 # Standard SSE format: "data: <json>\n\n"
                 yield f"data: {json.dumps(event)}\n\n"

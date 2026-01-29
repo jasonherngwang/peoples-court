@@ -28,6 +28,8 @@ async def adjudicate(
     embedding_dim: int = EMBEDDING_DIM,
     k_precedents: int = K_PRECEDENTS,
     api_key: Optional[str] = None,
+    embedder: Optional[Embedder] = None,
+    jury: Optional[Jury] = None,
 ):
     """
     Async generator that yields progress events and final adjudication results.
@@ -41,10 +43,15 @@ async def adjudicate(
 
     db = Database(dbname=db_name)
     try:
-        # 1. Initialize models
-        yield {"event": "status", "data": "Initializing models..."}
-        embedder = Embedder(model_id=embed_model_name)
-        jury = Jury(model_id=jury_model_id, adapter_path=jury_adapter_path)
+        # 1. Initialize models (if not provided)
+        if not embedder or not jury:
+            yield {"event": "status", "data": "Initializing models..."}
+
+        if not embedder:
+            embedder = Embedder(model_id=embed_model_name)
+
+        if not jury:
+            jury = Jury(model_id=jury_model_id, adapter_path=jury_adapter_path)
 
         # 2. Vector Search & Retrieval
         yield {"event": "status", "data": "The Clerk is searching for precedents..."}
@@ -142,11 +149,6 @@ async def adjudicate(
 
             result["precedents"] = enriched_precedents
             result["consensus"] = consensus
-            result["diagnostics"] = {
-                "vector": v_res,
-                "keyword": k_res,
-                "hybrid": h_rank,
-            }
 
             yield {"event": "final_result", "data": result}
         except Exception as e:

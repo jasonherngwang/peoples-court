@@ -1,0 +1,15 @@
+{
+    # Enable automatic HTTPS
+    # email your-email@example.com
+}
+
+peoples-court-api.{$DOMAIN_NAME} {
+    reverse_proxy peoples_court_api:8000
+    
+    # Enable CORS (Wildcard for initial deployment/testing)
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-API-Key"
+    }
+}

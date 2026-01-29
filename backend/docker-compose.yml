@@ -19,8 +19,8 @@ services:
 
   api:
     build:
-      context: ../..
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: backend/Dockerfile
     container_name: peoples_court_api
     restart: always
     environment:
@@ -30,11 +30,26 @@ services:
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_NAME=peoples_court
       - INTERNAL_API_KEY=${INTERNAL_API_KEY}
-    ports:
-      - "8000:8000"
+      - HF_HUB_DOWNLOAD_TIMEOUT=600
     depends_on:
       db:
         condition: service_healthy
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: peoples_court_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

@@ -10,6 +10,7 @@ wheels/
 .venv
 
 .env
+.env.*
 .DS_Store
 
 # Data and Models
