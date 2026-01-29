@@ -1,5 +1,7 @@
 # Am I the Asshole? Let the People's Court decide!
 
+https://peoples-court.vercel.app/
+
 Draw upon case law from a decade of [r/AmITheAsshole](https://www.reddit.com/r/AmItheAsshole/) history, to adjudicate social conflict! Given a potential asshole scenario, determine the verdict:
 
 - **YTA:** You are the asshole
@@ -81,8 +83,8 @@ Upload and data set to RunPod 4090 and run `06_train.py`.
 - **Eval F1 Score:** 0.454 (+6.6% improvement)
 - **Loss:** 1.01 (Eval) / 1.01 (Train)
 
-Transfer outputs to R2: LoRA `safetensors`, configs, and `tokenizer` files.
+Transfer LoRA `safetensors`, configs, and `tokenizer` files to VPS.
 
 ### Deployment
 
-TBD
+FastAPI backend and classifier model inference on Oracle Ampere VPS. Next.js frontend.

@@ -8,8 +8,33 @@ import { z } from "zod";
 
 export const runtime = "edge";
 
+// Simple in-memory rate limit for Edge (ephemeral, but good as a speed bump)
+const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
+const RATE_LIMIT = 3; // requests
+const WINDOW_MS = 60 * 1000; // 1 minute
+
 export async function POST(req: Request) {
   try {
+    // 0. Simple Rate Limiting
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "anonymous";
+    const now = Date.now();
+    const userLimit = rateLimitMap.get(ip) || { count: 0, lastReset: now };
+
+    if (now - userLimit.lastReset > WINDOW_MS) {
+      userLimit.count = 0;
+      userLimit.lastReset = now;
+    }
+
+    if (userLimit.count >= RATE_LIMIT) {
+      return new Response(
+        "Excessive judicial inquiries. Please wait a moment.",
+        { status: 429 },
+      );
+    }
+
+    userLimit.count++;
+    rateLimitMap.set(ip, userLimit);
+
     const { messages, k_precedents } = await req.json();
     const lastMessage = messages[messages.length - 1];
 
