@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Gavel Head (Bold & Professional) -->
+  <path d="M10.5 4.5l-6 6 2 2 6-6-2-2zM8.5 6.5l-6 6 2 2 6-6-2-2z" fill="#002366" />
+  
+  <!-- Handle (Thick for small icon visibility) -->
+  <line x1="12" y1="12" x2="20" y2="20" stroke="#002366" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- Sound Block (Base) -->
+  <rect x="2" y="19" width="10" height="2.5" rx="1" fill="#002366" />
+</svg>
