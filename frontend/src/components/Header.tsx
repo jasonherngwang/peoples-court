@@ -8,7 +8,7 @@ export function Header({ showDescription = true }: HeaderProps) {
   return (
     <header className="container-narrow py-16 md:py-24">
       <div className="text-center space-y-5">
-        <p className="heading-2">Official Adjudication Portal</p>
+        <p className="heading-2 mt-2 md:mt-8">Official Adjudication Portal</p>
         <h1 className="heading-display">
           The People's Court{" "}
           <span className="heading-display-accent">is in Session.</span>
